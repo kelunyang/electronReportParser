@@ -1,5 +1,20 @@
 <template>
   <v-app>
+        <v-dialog
+            v-model="loadW"
+            persistent
+            max-width="40vw"
+        >
+        <v-card>
+            <v-card-title class="headline">
+            計算中，請稍後
+            </v-card-title>
+            <v-card-text>
+                {{ calcStatus }}
+                <div class='red--text text-caption'>提示：統計完成後，「統計圖表」和「匯出結果」兩項功能便可使用，如果你要計算其他資料或是調整區間，建議關閉程式重啟再選一次</div>
+            </v-card-text>
+        </v-card>
+        </v-dialog>
       <v-card>
           <v-card-text>
               <v-tabs
@@ -10,8 +25,8 @@
               >
                   <v-tab>使用說明</v-tab>
                   <v-tab>載入資料</v-tab>
-                  <v-tab>統計圖表</v-tab>
-                  <v-tab>匯出清單</v-tab>
+                  <v-tab :disabled='!calcCompleted'>統計圖表</v-tab>
+                  <v-tab :disabled='!calcCompleted'>匯出清單</v-tab>
               </v-tabs>
           
               <v-tabs-items v-model="tab">
@@ -66,7 +81,7 @@
                                       <v-text-field :disabled="!dataAppend" label="自訂資料濾鏡" v-model='filterFunction'></v-text-field>
                                       <p class='red--text text-caption'>X代表資料，例如X*5代表把資料都*5</p>
                                       <v-text-field label="排行榜列出前N筆？" v-model='otherCount'></v-text-field>
-                                      <p class='red--text text-caption'>逐年統計中會列出前幾名的排序，之後的會歸入「其他」</p>
+                                      <p class='red--text text-caption'>統計中會列出前幾名的排序，之後的會歸入「其他」</p>
                                   </v-card-text>
                                   <v-card-actions>
                                       <v-btn @click="readRange">下一步</v-btn>
@@ -103,7 +118,7 @@
                   <v-tab-item>
                       <v-card flat>
                         <v-card-text>
-                            <div class="text-h6">資料概況：（本頁中的「次數」欄位為： {{ itemcolumnname }} <span v-if='dataAppend'>／「資料」欄位為： {{ datacolumnname }} </span>，逐月累計而成）</div>
+                            <div class="text-h6">資料概況：（本頁中的「次數」欄位為： {{ itemcolumnname }} <span v-if='dataAppend'>／「資料」欄位為： {{ datacolumnname }} </span>，逐{{ spanWord }}累計而成）</div>
                             <v-sheet class="d-flex flex-row flex-wrap" style="width: 80vw">
                                 <v-card class="flex-grow-1" v-for="item in rankArray" :key="item.title+'BL'">
                                     <v-card-title class="text-caption">{{ item.title }}</v-card-title>
@@ -207,6 +222,9 @@ export default {
     },
     data() {
         return {
+            calcCompleted: false,
+            loadW: false,
+            calcStatus: "啟動統計模組...",
             otherCount: 10,
             calcDone: true,
             step: 1,
@@ -263,6 +281,10 @@ export default {
         }
     },
     computed: {
+        spanWord: function () {
+            let spanObj = this.spanUnitArr.filter((item) => item.value === this.spanUnit);
+            return spanObj[0].name;
+        },
         monthControl: function() {
             return this.spanUnit === 'days';
         },
@@ -410,8 +432,24 @@ export default {
             this.step = 3;
         },
         calcResult: async function() {
+            let oriobj = this;
             this.calcDone = false;
             let instance = WebWorker();
+            instance.onmessage = (event) => {
+                if(typeof event.data === 'string') {
+                    if(event.data.includes("msg")) {
+                        let msg = event.data.replace('msg', '');
+                        oriobj.calcStatus = msg;
+                        if(msg === '統計結束！') {
+                            setTimeout(() => {
+                                oriobj.calcCompleted = true;
+                                oriobj.loadW = false;
+                             }, 1000);
+                        }
+                    }
+                }
+            }
+            this.loadW = true;
             let result = await instance.calcResult(this.rawData,{
                 filterFunction: this.filterFunction,
                 spanValue: this.spanValue,

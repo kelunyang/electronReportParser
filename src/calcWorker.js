@@ -11,6 +11,7 @@ function filterFn(val) {
 }
 
 export function calcResult(rawData, configs) {
+    self.postMessage('msg建立計算參數...');
     filterFunction = configs.filterFunction;
     let rankArray = new Array();
     let sumArray = new Array();
@@ -25,6 +26,7 @@ export function calcResult(rawData, configs) {
     };
     let tempArr = new Array();
     let DataArr = new Array();
+    self.postMessage('msg開始分析資料概況...');
     rawData.forEach((item) => {
         if(tempArr[item.name] === undefined) {
             tempArr[item.name] = {
@@ -36,6 +38,7 @@ export function calcResult(rawData, configs) {
             tempArr[item.name].data += filterFn(parseInt(item.data, 10));
         }
     });
+    self.postMessage('msg計算統計概況...');
     Object.keys(tempArr).forEach((item) => {
         DataArr.push({
             itemname: item,
@@ -58,6 +61,7 @@ export function calcResult(rawData, configs) {
     });
     overallRank.distItem = Object.keys(tempArr).length;
     rankArray.push(overallRank);
+    self.postMessage('msg統計概況計算完成，計算分時段統計...');
     let datePointer = moment(configs.startDate, "YYYY-MM-DD");
     let endDate = moment(configs.endDate, "YYYY-MM-DD")
     while(endDate.diff(datePointer) > 0) {
@@ -76,6 +80,7 @@ export function calcResult(rawData, configs) {
         };
         tempArr = new Array();
         DataArr = new Array();
+        self.postMessage('msg正在分析：' + datePointer.format("YYYY-MM-DD HH:mm:ss") + "~" + newPointer.format("YYYY-MM-DD HH:mm:ss") + "...");
         rawData.forEach((item) => {
             if(moment.unix(item.date).isBetween(datePointer, newPointer)) {
                 if(tempArr[item.name] === undefined) {
@@ -89,6 +94,7 @@ export function calcResult(rawData, configs) {
                 }
             }
         });
+        self.postMessage('msg正在處理：' + datePointer.format("YYYY-MM-DD HH:mm:ss") + "~" + newPointer.format("YYYY-MM-DD HH:mm:ss") + "...");
         Object.keys(tempArr).forEach((item) => {
             DataArr.push({
                 itemname: item,
@@ -109,12 +115,14 @@ export function calcResult(rawData, configs) {
                 itemdata: item.itemdata
             });
         });
+        self.postMessage('msg' + datePointer.format("YYYY-MM-DD HH:mm:ss") + "~" + newPointer.format("YYYY-MM-DD HH:mm:ss") + "計算完成！");
         tempRank.distItem = Object.keys(tempArr).length;
         sumArray.push(tempRank.sum);
         labelArray.push(tempRank.title);
         rankArray.push(tempRank);
         datePointer = newPointer;
     }
+    self.postMessage('msg統計結束！');
     return {
         rankArray: rankArray,
         sumArray: sumArray,
