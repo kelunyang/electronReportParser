@@ -6,7 +6,7 @@ function filterFn(val) {
     if(isNaN(val)) {
         return "";
     } else {
-        return Function('val', filterFunction)(val);
+        return Function('x', filterFunction)(val);
     }
 }
 

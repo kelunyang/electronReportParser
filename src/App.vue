@@ -52,7 +52,8 @@
                                   <v-card-text>
                                       <v-file-input
                                           @change="readColumn"
-                                          label="原始資料"
+                                          label="原始資料CSV(UTF-8編碼)"
+                                          accept=".csv"
                                       ></v-file-input>
                                   </v-card-text>
                                   <v-card-actions>
